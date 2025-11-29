@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  rooms       Room[]       @relation("UserRooms")
+  sessions    Session[]    @relation("UserSessions")
+  roomMembers RoomMember[] @relation("UserRoomMembers")
+  messages    Message[]    @relation("UserMessages")
+
+  @@map("users")
+}
+
+model Room {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String?
+  createdBy       String     @db.ObjectId
+  isPrivate       Boolean    @default(false)
+  maxParticipants Int        @default(10)
+  status          RoomStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  creator  User         @relation("UserRooms", fields: [createdBy], references: [id])
+  members  RoomMember[] @relation("RoomMembers")
+  sessions Session[]    @relation("RoomSessions")
+  messages Message[]    @relation("RoomMessages")
+
+  @@index([status, createdAt])
+  @@index([createdBy])
+  @@map("rooms")
+}
+
+model RoomMember {
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String     @db.ObjectId
+  roomId   String     @db.ObjectId
+  role     MemberRole @default(PARTICIPANT)
+  joinedAt DateTime   @default(now())
+  leftAt   DateTime?
+
+  // Relations
+  user User @relation("UserRoomMembers", fields: [userId], references: [id])
+  room Room @relation("RoomMembers", fields: [roomId], references: [id])
+
+  @@unique([userId, roomId])
+  @@index([roomId, joinedAt])
+  @@index([userId])
+  @@map("room_members")
+}
+
+model Session {
+  id       String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String        @db.ObjectId
+  roomId   String        @db.ObjectId
+  socketId String?
+  peerId   String?
+  status   SessionStatus @default(CONNECTING)
+  joinedAt DateTime      @default(now())
+  leftAt   DateTime?
+
+  // Relations
+  user User @relation("UserSessions", fields: [userId], references: [id])
+  room Room @relation("RoomSessions", fields: [roomId], references: [id])
+
+  @@index([roomId, status])
+  @@index([socketId])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Message {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String      @db.ObjectId
+  roomId    String      @db.ObjectId
+  content   String
+  type      MessageType @default(TEXT)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  user User @relation("UserMessages", fields: [userId], references: [id])
+  room Room @relation("RoomMessages", fields: [roomId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@index([userId])
+  @@map("messages")
+}
+
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum MemberRole {
+  HOST
+  MODERATOR
+  PARTICIPANT
+}
+
+enum SessionStatus {
+  CONNECTING
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
