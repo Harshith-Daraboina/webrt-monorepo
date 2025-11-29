@@ -9,6 +9,19 @@ import logger from './utils/logger';
 
 dotenv.config();
 
+// WebRTC type definitions for Node.js (these are browser types, so we define them here)
+interface RTCSessionDescriptionInit {
+  type: 'offer' | 'answer' | 'pranswer' | 'rollback';
+  sdp?: string;
+}
+
+interface RTCIceCandidateInit {
+  candidate?: string;
+  sdpMLineIndex?: number | null;
+  sdpMid?: string | null;
+  usernameFragment?: string | null;
+}
+
 const app = express();
 const httpServer = createServer(app);
 const prisma = new PrismaClient();
@@ -310,7 +323,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.SIGNALING_PORT || 3001;
+const PORT = parseInt(process.env.SIGNALING_PORT || '3001', 10);
 const HOST = process.env.SIGNALING_HOST || '0.0.0.0'; // Bind to all interfaces for network access
 
 httpServer.listen(PORT, HOST, () => {
