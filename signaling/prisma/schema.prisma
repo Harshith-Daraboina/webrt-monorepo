@@ -23,6 +23,7 @@ model User {
   sessions    Session[]    @relation("UserSessions")
   roomMembers RoomMember[] @relation("UserRoomMembers")
   messages    Message[]    @relation("UserMessages")
+  transcripts Transcript[] @relation("UserTranscripts")
 
   @@map("users")
 }
@@ -39,10 +40,11 @@ model Room {
   updatedAt       DateTime   @updatedAt
 
   // Relations
-  creator  User         @relation("UserRooms", fields: [createdBy], references: [id])
-  members  RoomMember[] @relation("RoomMembers")
-  sessions Session[]    @relation("RoomSessions")
-  messages Message[]    @relation("RoomMessages")
+  creator     User         @relation("UserRooms", fields: [createdBy], references: [id])
+  members     RoomMember[] @relation("RoomMembers")
+  sessions    Session[]    @relation("RoomSessions")
+  messages    Message[]    @relation("RoomMessages")
+  transcripts Transcript[] @relation("RoomTranscripts")
 
   @@index([status, createdAt])
   @@index([createdBy])
@@ -128,4 +130,21 @@ enum MessageType {
   IMAGE
   FILE
   SYSTEM
+}
+
+model Transcript {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  roomId    String   @db.ObjectId
+  text      String
+  timestamp DateTime @default(now())
+  isFinal   Boolean  @default(false) // true for final transcript, false for interim
+
+  // Relations
+  user User @relation("UserTranscripts", fields: [userId], references: [id])
+  room Room @relation("RoomTranscripts", fields: [roomId], references: [id])
+
+  @@index([roomId, timestamp])
+  @@index([userId])
+  @@map("transcripts")
 }
